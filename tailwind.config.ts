@@ -1,4 +1,3 @@
-
 import type { Config } from "tailwindcss";
 
 export default {
@@ -63,13 +62,12 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// Custom colors for ONLYL34KS
 				"onlyl34ks": {
 					"bg-dark": "#1A1A1A",
 					"bg-darker": "#121212",
 					"bg-light": "#2C2C2C",
-					"accent": "#00BFA6",
-					"accent-dark": "#009d89",
+					"accent": "#00AFF0",
+					"accent-dark": "#0090C7",
 					"text-light": "#E0E0E0",
 					"text-muted": "#999999",
 					"card": "#232323",
