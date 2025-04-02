@@ -25,7 +25,8 @@ export default function CreatorDetailPage() {
   const { 
     data: contentFiles, 
     isLoading: filesLoading, 
-    isError: filesError 
+    isError: filesError,
+    refetch: refetchContentFiles
   } = useQuery({
     queryKey: ['contentFiles', id],
     queryFn: () => fetchContentFiles(id as string),
@@ -34,6 +35,11 @@ export default function CreatorDetailPage() {
 
   const handleBackClick = () => {
     navigate('/admin');
+  };
+
+  const handleUploadSuccess = () => {
+    refetchContentFiles();
+    setActiveTab("files");
   };
 
   const isLoading = creatorLoading || filesLoading;
@@ -117,7 +123,7 @@ export default function CreatorDetailPage() {
                 <TabsContent value="upload" className="mt-0">
                   <FileUploadForm
                     creatorId={creator.id}
-                    onSuccess={() => setActiveTab("files")}
+                    onSuccess={handleUploadSuccess}
                   />
                 </TabsContent>
               </Tabs>

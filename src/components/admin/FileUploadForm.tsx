@@ -1,20 +1,20 @@
 
 import { useState } from 'react';
-import { useForm } from 'react-hook-form';
 import { useMutation } from '@tanstack/react-query';
 import { Loader2, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Form,
-  FormControl,
   FormDescription,
   FormField,
   FormItem,
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
+import { useForm } from 'react-hook-form';
 import { uploadFile, createContentFile } from '@/services/contentFileService';
 import { useToast } from '@/hooks/use-toast';
+import BatchFileUploader from './BatchFileUploader';
 
 interface FileUploadFormProps {
   creatorId: string;
@@ -22,7 +22,7 @@ interface FileUploadFormProps {
 }
 
 interface FileUploadFormValues {
-  file: FileList;
+  files: File[];
 }
 
 export default function FileUploadForm({ creatorId, onSuccess }: FileUploadFormProps) {
@@ -30,24 +30,33 @@ export default function FileUploadForm({ creatorId, onSuccess }: FileUploadFormP
   const [isUploading, setIsUploading] = useState(false);
   
   const form = useForm<FileUploadFormValues>({
-    defaultValues: {},
+    defaultValues: {
+      files: [],
+    },
   });
 
   const mutation = useMutation({
-    mutationFn: async (file: File) => {
+    mutationFn: async (files: File[]) => {
       setIsUploading(true);
+      
       try {
-        // Step 1: Upload the file to storage
-        const filePath = await uploadFile(file, creatorId);
-        
-        // Step 2: Create content file record in the database
-        return await createContentFile({
-          creator_id: creatorId,
-          file_name: file.name,
-          file_path: filePath,
-          file_type: file.type,
-          file_size: file.size,
+        // Process all files in parallel
+        const promises = files.map(async (file) => {
+          // Step 1: Upload the file to storage
+          const filePath = await uploadFile(file, creatorId);
+          
+          // Step 2: Create content file record in the database
+          return await createContentFile({
+            creator_id: creatorId,
+            file_name: file.name,
+            file_path: filePath,
+            file_type: file.type,
+            file_size: file.size,
+            is_preview: false, // Default to not a preview file
+          });
         });
+        
+        return await Promise.all(promises);
       } finally {
         setIsUploading(false);
       }
@@ -57,29 +66,29 @@ export default function FileUploadForm({ creatorId, onSuccess }: FileUploadFormP
       onSuccess();
       toast({
         title: "Success",
-        description: "File uploaded successfully",
+        description: "All files uploaded successfully",
       });
     },
     onError: (error: Error) => {
       toast({
         title: "Error",
-        description: `Failed to upload file: ${error.message}`,
+        description: `Failed to upload files: ${error.message}`,
         variant: "destructive",
       });
     },
   });
 
   const onSubmit = async (data: FileUploadFormValues) => {
-    if (!data.file || data.file.length === 0) {
+    if (!data.files || data.files.length === 0) {
       toast({
         title: "Error",
-        description: "Please select a file to upload",
+        description: "Please select files to upload",
         variant: "destructive",
       });
       return;
     }
 
-    mutation.mutate(data.file[0]);
+    mutation.mutate(data.files);
   };
 
   return (
@@ -87,21 +96,17 @@ export default function FileUploadForm({ creatorId, onSuccess }: FileUploadFormP
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         <FormField
           control={form.control}
-          name="file"
-          render={({ field: { onChange, value, ...rest } }) => (
+          name="files"
+          render={({ field }) => (
             <FormItem>
-              <FormLabel>Upload File</FormLabel>
-              <FormControl>
-                <input
-                  type="file"
-                  onChange={(e) => onChange(e.target.files)}
-                  {...rest}
-                  className="block w-full text-white file:mr-4 file:py-2 file:px-4 
-                    file:rounded-md file:border-0 file:bg-onlyl34ks-accent 
-                    file:text-white hover:file:bg-onlyl34ks-accent-dark
-                    bg-onlyl34ks-bg-dark border border-onlyl34ks-bg-light/30 rounded-md"
-                />
-              </FormControl>
+              <FormLabel>Upload Files</FormLabel>
+              <BatchFileUploader
+                value={field.value}
+                onChange={field.onChange}
+                maxFiles={50}
+                maxSize={5 * 1024 * 1024 * 1024} // 5GB
+                disabled={isUploading || mutation.isPending}
+              />
               <FormDescription className="text-onlyl34ks-text-muted">
                 Upload content files for this creator (images, documents, videos, etc.)
               </FormDescription>
@@ -112,7 +117,7 @@ export default function FileUploadForm({ creatorId, onSuccess }: FileUploadFormP
 
         <Button 
           type="submit" 
-          disabled={isUploading || mutation.isPending} 
+          disabled={isUploading || mutation.isPending || form.watch("files").length === 0} 
           className="bg-onlyl34ks-accent hover:bg-onlyl34ks-accent-dark text-white"
         >
           {isUploading || mutation.isPending ? (
@@ -123,7 +128,7 @@ export default function FileUploadForm({ creatorId, onSuccess }: FileUploadFormP
           ) : (
             <>
               <Upload className="w-4 h-4 mr-2" />
-              Upload File
+              Upload Files
             </>
           )}
         </Button>
