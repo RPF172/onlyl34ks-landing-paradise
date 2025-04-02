@@ -9,6 +9,33 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      creators: {
+        Row: {
+          bio: string | null
+          category: string
+          created_at: string
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          bio?: string | null
+          category: string
+          created_at?: string
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          bio?: string | null
+          category?: string
+          created_at?: string
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
@@ -35,7 +62,12 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      is_admin: {
+        Args: {
+          user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
       [_ in never]: never

@@ -1,6 +1,6 @@
 
 import { useState, useEffect } from "react";
-import { Menu, X, User, LogOut } from "lucide-react";
+import { Menu, X, User, LogOut, LayoutDashboard } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -12,6 +12,8 @@ const Navbar = () => {
   const { user, signOut, profile } = useAuth();
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  const isAdmin = profile?.role === 'Admin';
 
   useEffect(() => {
     const handleScroll = () => {
@@ -85,6 +87,16 @@ const Navbar = () => {
                   <span>{user.email}</span>
                   {profile && <span className="text-onlyl34ks-accent">({profile.role})</span>}
                 </div>
+                {isAdmin && (
+                  <Button 
+                    variant="ghost" 
+                    onClick={() => navigate('/admin')}
+                    className="flex items-center gap-2 text-onlyl34ks-text-light hover:text-onlyl34ks-accent"
+                  >
+                    <LayoutDashboard size={16} />
+                    Admin
+                  </Button>
+                )}
                 <Button 
                   variant="ghost" 
                   onClick={handleSignOut}
@@ -157,6 +169,19 @@ const Navbar = () => {
                     <span>{user.email}</span>
                     {profile && <span className="text-onlyl34ks-accent">({profile.role})</span>}
                   </div>
+                  {isAdmin && (
+                    <Button 
+                      variant="ghost" 
+                      onClick={() => {
+                        setIsMenuOpen(false);
+                        navigate('/admin');
+                      }}
+                      className="flex items-center gap-2 text-onlyl34ks-text-light hover:text-onlyl34ks-accent justify-start px-0"
+                    >
+                      <LayoutDashboard size={16} />
+                      Admin Dashboard
+                    </Button>
+                  )}
                   <Button 
                     variant="ghost" 
                     onClick={handleSignOut}
