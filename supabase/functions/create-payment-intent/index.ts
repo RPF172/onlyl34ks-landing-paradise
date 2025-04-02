@@ -89,7 +89,18 @@ serve(async (req) => {
         }))),
         shipping_name: shippingInfo?.name || '',
         shipping_email: shippingInfo?.email || user.email || '',
-      }
+      },
+      shipping: shippingInfo ? {
+        name: shippingInfo.name,
+        address: {
+          line1: shippingInfo.address.line1,
+          line2: shippingInfo.address.line2 || '',
+          city: shippingInfo.address.city,
+          state: shippingInfo.address.state,
+          postal_code: shippingInfo.address.postalCode,
+          country: shippingInfo.address.country,
+        }
+      } : undefined
     });
 
     console.log("PaymentIntent created:", paymentIntent.id);

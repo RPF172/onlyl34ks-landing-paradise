@@ -1,42 +1,24 @@
 
-import React, { useState, FormEvent } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { useStripe, useElements, PaymentElement, AddressElement } from "@stripe/react-stripe-js";
+import { useStripe, useElements, PaymentElement } from "@stripe/react-stripe-js";
 import { useCart } from "@/contexts/CartContext";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Form, FormField, FormItem, FormLabel, FormControl } from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
 import { Separator } from "@/components/ui/separator";
-
-const formSchema = z.object({
-  name: z.string().min(2, "Name is required"),
-  email: z.string().email("Valid email is required"),
-});
-
-type FormValues = z.infer<typeof formSchema>;
 
 export default function CheckoutForm() {
   const stripe = useStripe();
   const elements = useElements();
-  const { clearCart, updateShippingInfo, shippingInfo } = useCart();
+  const { clearCart, shippingInfo } = useCart();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [isProcessing, setIsProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | undefined>();
 
-  const form = useForm<FormValues>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: shippingInfo?.name || "",
-      email: shippingInfo?.email || "",
-    },
-  });
-
-  const handleSubmit = async (values: FormValues) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    
     if (!stripe || !elements) {
       // Stripe.js has not loaded yet. Make sure to disable form submission until Stripe.js has loaded.
       return;
@@ -46,35 +28,6 @@ export default function CheckoutForm() {
     setErrorMessage(undefined);
 
     try {
-      // Update shipping info in context
-      const addressElement = elements.getElement("address");
-      let address = null;
-
-      if (addressElement) {
-        const addressValue = await addressElement.getValue();
-        if (addressValue.complete) {
-          address = addressValue.value.address;
-        } else {
-          throw new Error("Please complete the shipping address");
-        }
-      }
-
-      // Update shipping info in context
-      if (address) {
-        updateShippingInfo({
-          name: values.name,
-          email: values.email,
-          address: {
-            line1: address.line1 || "",
-            line2: address.line2,
-            city: address.city || "",
-            state: address.state || "",
-            postalCode: address.postal_code || "",
-            country: address.country || "",
-          },
-        });
-      }
-
       // Process payment
       const result = await stripe.confirmPayment({
         elements,
@@ -82,15 +35,15 @@ export default function CheckoutForm() {
           return_url: `${window.location.origin}/checkout-success`,
           payment_method_data: {
             billing_details: {
-              name: values.name,
-              email: values.email,
-              address: address ? {
-                line1: address.line1 || "",
-                line2: address.line2 || "",
-                city: address.city || "",
-                state: address.state || "",
-                postal_code: address.postal_code || "",
-                country: address.country || "",
+              name: shippingInfo?.name || "",
+              email: shippingInfo?.email || "",
+              address: shippingInfo?.address ? {
+                line1: shippingInfo.address.line1 || "",
+                line2: shippingInfo.address.line2 || "",
+                city: shippingInfo.address.city || "",
+                state: shippingInfo.address.state || "",
+                postal_code: shippingInfo.address.postalCode || "",
+                country: shippingInfo.address.country || "",
               } : undefined
             }
           }
@@ -135,96 +88,66 @@ export default function CheckoutForm() {
   };
 
   return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(handleSubmit)} className="space-y-6">
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Contact Information</h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Full Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="John Doe" {...field} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input type="email" placeholder="you@example.com" {...field} />
-                  </FormControl>
-                </FormItem>
-              )}
-            />
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Shipping Address</h2>
-          <AddressElement 
-            options={{
-              mode: "shipping",
-              allowedCountries: ["US", "CA", "GB"],
-              fields: {
-                phone: "never",  // Changed from "optional" to "never" to fix the TypeScript error
-              },
-              validation: {
-                phone: {
-                  required: "never",
-                },
-              },
-            }} 
-          />
-        </div>
-
-        <Separator className="my-4" />
-
-        <div className="space-y-4">
-          <h2 className="text-xl font-semibold">Payment Details</h2>
-          <p className="text-sm text-muted-foreground mb-4">
-            Please enter your card details below to complete your purchase.
-          </p>
-          <PaymentElement 
-            options={{
-              layout: {
-                type: 'tabs',
-                defaultCollapsed: false,
-              },
-            }} 
-          />
-        </div>
-
-        {errorMessage && (
-          <div className="text-red-500 bg-red-50 p-4 rounded border border-red-200">
-            {errorMessage}
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div>
+        <h2 className="text-xl font-semibold">Review Information</h2>
+        {shippingInfo && (
+          <div className="mt-4 p-4 bg-muted/40 rounded-md">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              <div>
+                <p className="text-sm font-medium">Contact</p>
+                <p>{shippingInfo.name}</p>
+                <p>{shippingInfo.email}</p>
+              </div>
+              <div>
+                <p className="text-sm font-medium">Shipping Address</p>
+                <p>{shippingInfo.address.line1}</p>
+                {shippingInfo.address.line2 && <p>{shippingInfo.address.line2}</p>}
+                <p>{shippingInfo.address.city}, {shippingInfo.address.state} {shippingInfo.address.postalCode}</p>
+                <p>{shippingInfo.address.country}</p>
+              </div>
+            </div>
           </div>
         )}
+      </div>
 
-        <Button 
-          type="submit" 
-          className="w-full" 
-          disabled={isProcessing || !stripe || !elements}
-        >
-          {isProcessing ? (
-            <div className="flex items-center">
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-              Processing Payment...
-            </div>
-          ) : (
-            "Complete Purchase"
-          )}
-        </Button>
-      </form>
-    </Form>
+      <Separator className="my-4" />
+
+      <div className="space-y-4">
+        <h2 className="text-xl font-semibold">Payment Details</h2>
+        <p className="text-sm text-muted-foreground mb-4">
+          Please enter your card details below to complete your purchase.
+        </p>
+        <PaymentElement 
+          options={{
+            layout: {
+              type: 'tabs',
+              defaultCollapsed: false,
+            },
+          }} 
+        />
+      </div>
+
+      {errorMessage && (
+        <div className="text-red-500 bg-red-50 p-4 rounded border border-red-200">
+          {errorMessage}
+        </div>
+      )}
+
+      <Button 
+        type="submit" 
+        className="w-full" 
+        disabled={isProcessing || !stripe || !elements}
+      >
+        {isProcessing ? (
+          <div className="flex items-center">
+            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+            Processing Payment...
+          </div>
+        ) : (
+          "Complete Purchase"
+        )}
+      </Button>
+    </form>
   );
 }

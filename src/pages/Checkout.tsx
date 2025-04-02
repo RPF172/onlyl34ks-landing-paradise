@@ -11,19 +11,22 @@ import CheckoutForm from '@/components/checkout/CheckoutForm';
 import OrderSummary from '@/components/checkout/OrderSummary';
 import { Card } from '@/components/ui/card';
 import { motion } from 'framer-motion';
+import { Button } from '@/components/ui/button';
+import ContactInfoForm from '@/components/checkout/ContactInfoForm';
 
 // Load Stripe outside of component to avoid recreating it on renders
 // Replace with your own publishable key
 const stripePromise = loadStripe("pk_test_YourStripePubKeyHere");
 
 export default function Checkout() {
-  const { items, subtotal, tax, totalPrice, shippingInfo } = useCart();
+  const { items, subtotal, tax, totalPrice, shippingInfo, updateShippingInfo } = useCart();
   const { user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [clientSecret, setClientSecret] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [step, setStep] = useState<'contact' | 'payment'>('contact');
 
   useEffect(() => {
     // If cart is empty, redirect to cart page
@@ -42,42 +45,52 @@ export default function Checkout() {
       navigate("/auth", { state: { from: "/checkout" } });
       return;
     }
+  }, [user, items, navigate, toast]);
 
-    // Create PaymentIntent as soon as the page loads
-    const createPaymentIntent = async () => {
-      setLoading(true);
-      setError(null);
-      
-      try {
-        const { data, error } = await supabase.functions.invoke('create-payment-intent', {
-          body: { 
-            items,
-            shippingInfo
+  // Function to create the payment intent after collecting contact info
+  const createPaymentIntent = async (contactInfo) => {
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Update shipping info in cart context
+      updateShippingInfo({
+        name: contactInfo.name,
+        email: contactInfo.email,
+        address: contactInfo.address
+      });
+
+      const { data, error } = await supabase.functions.invoke('create-payment-intent', {
+        body: { 
+          items,
+          shippingInfo: {
+            name: contactInfo.name,
+            email: contactInfo.email,
+            address: contactInfo.address
           }
-        });
-
-        if (error) throw error;
-
-        if (data?.clientSecret) {
-          setClientSecret(data.clientSecret);
-        } else {
-          throw new Error('No client secret returned');
         }
-      } catch (err) {
-        console.error("Error creating payment intent:", err);
-        setError(err instanceof Error ? err.message : "Failed to initialize payment. Please try again.");
-        toast({
-          title: "Payment Setup Failed",
-          description: err instanceof Error ? err.message : "An error occurred while setting up the payment.",
-          variant: "destructive"
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
+      });
 
-    createPaymentIntent();
-  }, [user, items, navigate, toast, shippingInfo]);
+      if (error) throw error;
+
+      if (data?.clientSecret) {
+        setClientSecret(data.clientSecret);
+        setStep('payment');
+      } else {
+        throw new Error('No client secret returned');
+      }
+    } catch (err) {
+      console.error("Error creating payment intent:", err);
+      setError(err instanceof Error ? err.message : "Failed to initialize payment. Please try again.");
+      toast({
+        title: "Payment Setup Failed",
+        description: err instanceof Error ? err.message : "An error occurred while setting up the payment.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (items.length === 0) {
     return null; // Will redirect in useEffect
@@ -105,7 +118,13 @@ export default function Checkout() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
           <Card className="p-6">
-            {clientSecret ? (
+            {step === 'contact' ? (
+              <ContactInfoForm 
+                onSubmit={createPaymentIntent}
+                isLoading={loading}
+                initialData={shippingInfo}
+              />
+            ) : clientSecret ? (
               <Elements stripe={stripePromise} options={{ clientSecret, appearance }}>
                 <CheckoutForm />
               </Elements>
