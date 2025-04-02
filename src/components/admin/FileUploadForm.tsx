@@ -48,7 +48,7 @@ export default function FileUploadForm({ creatorId, onSuccess }: FileUploadFormP
       setIsUploading(true);
       
       try {
-        console.log('Creating content file records for:', files.length, 'files');
+        console.log('Creating content file records for:', files.length, 'files', 'with creatorId:', creatorId);
         // Files are already uploaded by the BatchFileUploader
         // We just need to create the database records for each file
         const results: ContentFile[] = [];
@@ -73,6 +73,7 @@ export default function FileUploadForm({ creatorId, onSuccess }: FileUploadFormP
           };
 
           try {
+            console.log('Sending content file input:', JSON.stringify(contentFileInput));
             const contentFile = await createContentFile(contentFileInput);
             console.log('Content file record created:', contentFile);
             results.push(contentFile);
@@ -123,9 +124,10 @@ export default function FileUploadForm({ creatorId, onSuccess }: FileUploadFormP
     console.log('Form submitted with files:', data.files.length);
     
     // Filter out files that weren't successfully uploaded
-    const successfullyUploadedFiles = (data.files as FileWithUploadStatus[]).filter((file) => 
-      file.status === 'success'
-    );
+    const successfullyUploadedFiles = (data.files as FileWithUploadStatus[]).filter((file) => {
+      console.log(`File ${file.name} status: ${file.status}, path: ${file.path}`);
+      return file.status === 'success' && file.path;
+    });
 
     console.log('Successfully uploaded files:', successfullyUploadedFiles.length);
     

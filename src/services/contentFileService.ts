@@ -37,19 +37,33 @@ export const fetchContentFile = async (id: string): Promise<ContentFile> => {
 export const createContentFile = async (contentFile: CreateContentFileInput): Promise<ContentFile> => {
   console.log('Creating content file with data:', contentFile);
   
-  const { data, error } = await supabase
-    .from('content_files')
-    .insert([contentFile])
-    .select()
-    .single();
+  try {
+    // Validate required fields
+    if (!contentFile.creator_id) {
+      throw new Error('creator_id is required');
+    }
+    
+    if (!contentFile.file_path) {
+      throw new Error('file_path is required');
+    }
+    
+    const { data, error } = await supabase
+      .from('content_files')
+      .insert([contentFile])
+      .select()
+      .single();
 
-  if (error) {
-    console.error('Error creating content file:', error);
-    throw new Error(error.message);
+    if (error) {
+      console.error('Error creating content file:', error);
+      throw new Error(error.message);
+    }
+
+    console.log('Content file created successfully:', data);
+    return data as ContentFile;
+  } catch (err) {
+    console.error('Error in createContentFile function:', err);
+    throw err;
   }
-
-  console.log('Content file created successfully:', data);
-  return data as ContentFile;
 };
 
 export const createContentFileRecord = createContentFile;

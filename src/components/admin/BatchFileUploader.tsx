@@ -149,6 +149,8 @@ export default function BatchFileUploader({
         throw error;
       }
       
+      console.log('File uploaded successfully:', filePath);
+      
       // Update file with success status and path
       setFiles(prev => 
         prev.map(f => 
