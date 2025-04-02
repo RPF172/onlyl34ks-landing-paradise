@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
+import { CartProvider } from "./contexts/CartContext";
 
 // Layouts
 import MainLayout from "./layouts/MainLayout";
@@ -19,6 +20,8 @@ import AdminCreatorDetail from "./pages/admin/CreatorDetail";
 import AdminAnalytics from "./pages/admin/analytics";
 import Creators from "./pages/Creators";
 import CreatorDetail from "./pages/CreatorDetail";
+import Cart from "./pages/Cart";
+import CheckoutSuccess from "./pages/CheckoutSuccess";
 
 const queryClient = new QueryClient();
 
@@ -30,6 +33,8 @@ const router = createBrowserRouter([
       { index: true, element: <Index /> },
       { path: "creators", element: <Creators /> },
       { path: "creators/:creatorId", element: <CreatorDetail /> },
+      { path: "cart", element: <Cart /> },
+      { path: "checkout-success", element: <CheckoutSuccess /> },
     ],
   },
   {
@@ -57,11 +62,13 @@ const router = createBrowserRouter([
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <RouterProvider router={router} />
-      </TooltipProvider>
+      <CartProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <RouterProvider router={router} />
+        </TooltipProvider>
+      </CartProvider>
     </AuthProvider>
   </QueryClientProvider>
 );

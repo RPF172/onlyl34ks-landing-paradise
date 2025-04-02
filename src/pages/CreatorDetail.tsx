@@ -11,10 +11,12 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ShoppingCart, File, Image, Video, HardDrive } from "lucide-react";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
+import { useCart } from "@/contexts/CartContext";
 
 export default function CreatorDetail() {
   const { creatorId } = useParams<{ creatorId: string }>();
   const { toast } = useToast();
+  const { addItem } = useCart();
 
   const { data: creator, isLoading: isCreatorLoading } = useQuery({
     queryKey: ["creator", creatorId],
@@ -70,6 +72,17 @@ export default function CreatorDetail() {
     if (fileType.startsWith('image/')) return <Image className="h-6 w-6 text-onlyl34ks-accent" />;
     if (fileType.startsWith('video/')) return <Video className="h-6 w-6 text-onlyl34ks-accent" />;
     return <File className="h-6 w-6 text-onlyl34ks-accent" />;
+  };
+
+  const handleAddToCart = () => {
+    if (creator) {
+      addItem({
+        id: creatorId as string,
+        creatorId: creatorId as string,
+        creatorName: creator.name,
+        price: 19.99 // In a real app, this should come from the creator_packages table
+      });
+    }
   };
 
   if (isLoading) {
@@ -212,7 +225,10 @@ export default function CreatorDetail() {
               
               <div className="text-center">
                 <div className="text-3xl font-bold mb-4 text-onlyl34ks-accent">$19.99</div>
-                <Button className="w-full bg-onlyl34ks-accent hover:bg-onlyl34ks-accent-dark text-white">
+                <Button 
+                  className="w-full bg-onlyl34ks-accent hover:bg-onlyl34ks-accent-dark text-white"
+                  onClick={handleAddToCart}
+                >
                   <ShoppingCart className="mr-2 h-4 w-4" />
                   Add to Cart
                 </Button>

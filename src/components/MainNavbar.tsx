@@ -11,11 +11,14 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, User, LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useCart } from "@/contexts/CartContext";
 import { useToast } from "@/hooks/use-toast";
+import { Badge } from "@/components/ui/badge";
 
 const MainNavbar = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const { user, signOut, profile } = useAuth();
+  const { itemsCount } = useCart();
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -74,6 +77,11 @@ const MainNavbar = () => {
                   <NavigationMenuLink className={navigationMenuTriggerStyle()}>
                     <ShoppingCart className="mr-1 h-4 w-4" />
                     Cart
+                    {itemsCount > 0 && (
+                      <Badge variant="destructive" className="ml-2 h-5 w-5 p-0 flex items-center justify-center rounded-full">
+                        {itemsCount}
+                      </Badge>
+                    )}
                   </NavigationMenuLink>
                 </Link>
               </NavigationMenuItem>
