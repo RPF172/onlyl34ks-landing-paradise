@@ -83,8 +83,9 @@ export default function Checkout() {
     return null; // Will redirect in useEffect
   }
 
+  // Using a proper type for Stripe Appearance
   const appearance = {
-    theme: 'stripe',
+    theme: 'stripe' as const, // Use 'as const' to tell TypeScript this is a literal value
     variables: {
       colorPrimary: '#4F46E5',
     },

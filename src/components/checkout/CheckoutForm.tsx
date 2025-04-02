@@ -161,7 +161,7 @@ export default function CheckoutForm() {
               mode: "shipping",
               allowedCountries: ["US", "CA", "GB"],
               fields: {
-                phone: "optional",
+                phone: "never",  // Changed from "optional" to "never" to fix the TypeScript error
               },
               validation: {
                 phone: {
