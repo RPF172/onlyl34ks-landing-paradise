@@ -17,9 +17,6 @@ export default function AdminAnalyticsPage() {
   } = useQuery({
     queryKey: ['salesAnalytics'],
     queryFn: fetchSalesAnalytics,
-    onSuccess: () => {
-      // Analytics data loaded successfully
-    },
     onError: (error) => {
       toast({
         title: "Error loading sales data",
@@ -36,9 +33,6 @@ export default function AdminAnalyticsPage() {
   } = useQuery({
     queryKey: ['salesByCreator'],
     queryFn: fetchSalesByCreator,
-    onSuccess: () => {
-      // Creator sales data loaded successfully  
-    },
     onError: (error) => {
       toast({
         title: "Error loading creator sales data",
