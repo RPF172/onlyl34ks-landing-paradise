@@ -18,6 +18,7 @@ export type Database = {
           file_size: number
           file_type: string
           id: string
+          is_preview: boolean | null
           updated_at: string
         }
         Insert: {
@@ -28,6 +29,7 @@ export type Database = {
           file_size: number
           file_type: string
           id?: string
+          is_preview?: boolean | null
           updated_at?: string
         }
         Update: {
@@ -38,6 +40,7 @@ export type Database = {
           file_size?: number
           file_type?: string
           id?: string
+          is_preview?: boolean | null
           updated_at?: string
         }
         Relationships: [
@@ -56,6 +59,7 @@ export type Database = {
           creator_id: string
           id: string
           price: number
+          ref_id: string
           updated_at: string
         }
         Insert: {
@@ -63,6 +67,7 @@ export type Database = {
           creator_id: string
           id?: string
           price?: number
+          ref_id?: string
           updated_at?: string
         }
         Update: {
@@ -70,6 +75,7 @@ export type Database = {
           creator_id?: string
           id?: string
           price?: number
+          ref_id?: string
           updated_at?: string
         }
         Relationships: [
