@@ -12,10 +12,11 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { useForm } from 'react-hook-form';
-import { uploadFile, createContentFile } from '@/services/contentFileService';
+import { createContentFile } from '@/services/contentFileService';
 import { useToast } from '@/hooks/use-toast';
 import BatchFileUploader from './BatchFileUploader';
 import { ContentFile, CreateContentFileInput } from '@/types/contentFile';
+import { supabase } from '@/integrations/supabase/client';
 
 interface FileUploadFormProps {
   creatorId: string;
@@ -41,25 +42,30 @@ export default function FileUploadForm({ creatorId, onSuccess }: FileUploadFormP
       setIsUploading(true);
       
       try {
-        // Process all files in parallel
-        const promises = files.map(async (file) => {
-          // Step 1: Upload the file to storage
-          const filePath = await uploadFile(file, creatorId);
+        // Files are already uploaded by the BatchFileUploader
+        // We just need to create the database records for each file
+        const results: ContentFile[] = [];
+        
+        for (const file of files) {
+          // The file path is set in the BatchFileUploader
+          // We need to get the path from the successful uploads
+          const filePath = `creator_${creatorId}/${file.id}_${file.name}`;
           
-          // Step 2: Create content file record in the database
+          // Create content file record
           const contentFileInput: CreateContentFileInput = {
             creator_id: creatorId,
             file_name: file.name,
             file_path: filePath,
-            file_type: file.type,
+            file_type: file.type || 'application/octet-stream',
             file_size: file.size,
             is_preview: false, // Default to not a preview file
           };
 
-          return await createContentFile(contentFileInput);
-        });
+          const contentFile = await createContentFile(contentFileInput);
+          results.push(contentFile);
+        }
         
-        return await Promise.all(promises);
+        return results;
       } catch (error) {
         console.error('Upload error:', error);
         throw error;
@@ -78,7 +84,7 @@ export default function FileUploadForm({ creatorId, onSuccess }: FileUploadFormP
     onError: (error: Error) => {
       toast({
         title: "Error",
-        description: `Failed to upload files: ${error.message}`,
+        description: `Failed to create file records: ${error.message}`,
         variant: "destructive",
       });
     },
@@ -94,7 +100,21 @@ export default function FileUploadForm({ creatorId, onSuccess }: FileUploadFormP
       return;
     }
 
-    mutation.mutate(data.files);
+    // Filter out files that weren't successfully uploaded
+    const successfullyUploadedFiles = data.files.filter((file: any) => 
+      file.status === 'success'
+    );
+
+    if (successfullyUploadedFiles.length === 0) {
+      toast({
+        title: "Error",
+        description: "No files were successfully uploaded. Please try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    mutation.mutate(successfullyUploadedFiles);
   };
 
   return (
@@ -112,6 +132,7 @@ export default function FileUploadForm({ creatorId, onSuccess }: FileUploadFormP
                 maxFiles={50}
                 maxSize={5 * 1024 * 1024 * 1024} // 5GB
                 disabled={isUploading || mutation.isPending}
+                creatorId={creatorId}
               />
               <FormDescription className="text-onlyl34ks-text-muted">
                 Upload content files for this creator (images, documents, videos, etc.)
@@ -129,12 +150,12 @@ export default function FileUploadForm({ creatorId, onSuccess }: FileUploadFormP
           {isUploading || mutation.isPending ? (
             <>
               <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Uploading...
+              Creating Records...
             </>
           ) : (
             <>
               <Upload className="w-4 h-4 mr-2" />
-              Upload Files
+              Create File Records
             </>
           )}
         </Button>

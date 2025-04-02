@@ -5,6 +5,8 @@ import { Progress } from '@/components/ui/progress';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { X, RefreshCw, Upload, CheckCircle, AlertCircle, Image, FileText, Film } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface FileWithProgress extends File {
   id: string;
@@ -14,10 +16,6 @@ interface FileWithProgress extends File {
   status: 'queued' | 'uploading' | 'success' | 'error';
   error?: string;
   previewUrl?: string;
-  uploadStartTime?: number;
-  uploadedSize?: number;
-  prevUploadedSize?: number;
-  prevTimestamp?: number;
 }
 
 interface BatchFileUploaderProps {
@@ -26,6 +24,7 @@ interface BatchFileUploaderProps {
   maxFiles?: number;
   maxSize?: number;
   disabled?: boolean;
+  creatorId?: string;
 }
 
 export default function BatchFileUploader({
@@ -34,9 +33,11 @@ export default function BatchFileUploader({
   maxFiles = 50,
   maxSize = 5 * 1024 * 1024 * 1024, // 5GB
   disabled = false,
+  creatorId,
 }: BatchFileUploaderProps) {
   const [files, setFiles] = useState<FileWithProgress[]>([]);
   const [overallProgress, setOverallProgress] = useState(0);
+  const { toast } = useToast();
   
   // Initialize files from value prop
   useEffect(() => {
@@ -70,56 +71,89 @@ export default function BatchFileUploader({
     onChange(files as File[]);
   }, [files, onChange]);
   
-  // Simulate upload progress (in a real app, this would be replaced with actual upload progress)
-  useEffect(() => {
-    if (disabled) return;
+  // Function to upload a file to Supabase
+  const uploadFileToSupabase = async (file: FileWithProgress) => {
+    // Skip if already uploaded or has error
+    if (file.status === 'success' || file.status === 'error') return;
     
-    const interval = setInterval(() => {
-      setFiles(prevFiles => 
-        prevFiles.map(file => {
-          if (file.status !== 'uploading') return file;
-          
-          const now = Date.now();
-          const elapsed = now - (file.prevTimestamp || now);
-          const uploadedDelta = Math.min(file.size * 0.05 * Math.random(), file.size - (file.uploadedSize || 0));
-          const newUploadedSize = (file.uploadedSize || 0) + uploadedDelta;
-          const progress = Math.min(Math.round((newUploadedSize / file.size) * 100), 100);
-          
-          // Calculate speed in bytes per second
-          const speed = elapsed > 0 ? 
-            ((newUploadedSize - (file.prevUploadedSize || 0)) / elapsed) * 1000 : 
-            0;
-          
-          // Estimate time remaining in seconds
-          const timeRemaining = speed > 0 ? 
-            Math.round((file.size - newUploadedSize) / speed) : 
-            0;
-          
-          // If progress is 100%, mark as success
-          const status = progress >= 100 ? 'success' : 'uploading';
-          
-          return {
-            ...file,
-            progress,
-            speed,
-            timeRemaining,
-            status,
-            uploadedSize: newUploadedSize,
-            prevUploadedSize: newUploadedSize,
-            prevTimestamp: now,
-          };
-        })
+    // Update file status to uploading
+    setFiles(prev => 
+      prev.map(f => 
+        f.id === file.id ? { ...f, status: 'uploading', progress: 0 } : f
+      )
+    );
+    
+    try {
+      // Generate file path - use creatorId if available or fallback to a generic path
+      const filePath = `${creatorId ? `creator_${creatorId}` : 'uploads'}/${crypto.randomUUID()}_${file.name}`;
+      
+      // Track upload start time for speed calculation
+      const uploadStartTime = Date.now();
+      
+      // Upload to Supabase storage with progress tracking
+      const { error } = await supabase.storage
+        .from('content-files')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+          onUploadProgress: (progress) => {
+            const now = Date.now();
+            const elapsed = (now - uploadStartTime) / 1000; // seconds
+            const uploadedSize = Math.floor(file.size * (progress.percent / 100));
+            const speed = elapsed > 0 ? uploadedSize / elapsed : 0; // bytes per second
+            const timeRemaining = speed > 0 ? (file.size - uploadedSize) / speed : 0;
+            
+            setFiles(prevFiles => 
+              prevFiles.map(f => 
+                f.id === file.id ? {
+                  ...f,
+                  progress: Math.round(progress.percent),
+                  speed: speed,
+                  timeRemaining: timeRemaining,
+                } : f
+              )
+            );
+          }
+        });
+      
+      if (error) {
+        throw error;
+      }
+      
+      // Update file with success status
+      setFiles(prev => 
+        prev.map(f => 
+          f.id === file.id ? { ...f, status: 'success', progress: 100 } : f
+        )
       );
-    }, 500);
-    
-    return () => clearInterval(interval);
-  }, [disabled]);
-
+      
+    } catch (error: any) {
+      console.error(`Error uploading file ${file.name}:`, error);
+      
+      // Update file with error status
+      setFiles(prev => 
+        prev.map(f => 
+          f.id === file.id ? { 
+            ...f, 
+            status: 'error', 
+            error: error?.message || 'Upload failed' 
+          } : f
+        )
+      );
+      
+      toast({
+        title: "Upload Error",
+        description: `Failed to upload ${file.name}: ${error?.message || 'Unknown error'}`,
+        variant: "destructive",
+      });
+    }
+  };
+  
   const onDrop = useCallback((acceptedFiles: File[]) => {
     // Don't process if disabled or exceeding max files
     if (disabled) return;
     
-    // Generate preview URLs for images and videos
+    // Generate preview URLs for images
     const newFiles = acceptedFiles.map(file => {
       const fileWithId: FileWithProgress = Object.assign(file, {
         id: crypto.randomUUID(),
@@ -127,10 +161,6 @@ export default function BatchFileUploader({
         speed: 0,
         timeRemaining: 0,
         status: 'queued' as const,
-        uploadStartTime: Date.now(),
-        uploadedSize: 0,
-        prevUploadedSize: 0,
-        prevTimestamp: Date.now(),
       });
       
       // Create preview for images
@@ -147,15 +177,11 @@ export default function BatchFileUploader({
     
     setFiles(filesToAdd);
     
-    // Start the upload process for new files
-    setFiles(prev => 
-      prev.map(file => 
-        file.status === 'queued' ? 
-          { ...file, status: 'uploading' } : 
-          file
-      )
-    );
-  }, [files, disabled, maxFiles]);
+    // Start upload for new files
+    newFiles.forEach(file => {
+      uploadFileToSupabase(file);
+    });
+  }, [files, disabled, maxFiles, creatorId, toast]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -200,27 +226,15 @@ export default function BatchFileUploader({
   };
 
   const handleRetryFile = (fileId: string) => {
-    setFiles(prev => 
-      prev.map(file => 
-        file.id === fileId ? 
-          { 
-            ...file, 
-            progress: 0, 
-            speed: 0, 
-            timeRemaining: 0, 
-            status: 'uploading',
-            error: undefined,
-            uploadStartTime: Date.now(),
-            uploadedSize: 0,
-            prevUploadedSize: 0,
-            prevTimestamp: Date.now(),
-          } : 
-          file
-      )
-    );
+    const fileToRetry = files.find(f => f.id === fileId);
+    if (fileToRetry) {
+      uploadFileToSupabase(fileToRetry);
+    }
   };
 
   const handleCancelUpload = (fileId: string) => {
+    // Currently Supabase doesn't support canceling uploads in progress
+    // We can only mark it as error in the UI
     setFiles(prev => 
       prev.map(file => 
         file.id === fileId ? 
