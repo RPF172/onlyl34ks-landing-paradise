@@ -15,6 +15,7 @@ interface CreatorSales {
 }
 
 export const fetchSalesAnalytics = async (): Promise<SalesAnalytics> => {
+  // @ts-ignore - Using a custom RPC function that TypeScript doesn't know about yet
   const { data, error } = await supabase
     .rpc('get_sales_analytics')
     .single();
@@ -28,6 +29,7 @@ export const fetchSalesAnalytics = async (): Promise<SalesAnalytics> => {
 };
 
 export const fetchSalesByCreator = async (): Promise<CreatorSales[]> => {
+  // @ts-ignore - Using a custom RPC function that TypeScript doesn't know about yet
   const { data, error } = await supabase
     .rpc('get_sales_by_creator');
 
