@@ -21,6 +21,7 @@ import AdminAnalytics from "./pages/admin/analytics";
 import Creators from "./pages/Creators";
 import CreatorDetail from "./pages/CreatorDetail";
 import Cart from "./pages/Cart";
+import Checkout from "./pages/Checkout";
 import CheckoutSuccess from "./pages/CheckoutSuccess";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const router = createBrowserRouter([
       { path: "creators", element: <Creators /> },
       { path: "creators/:creatorId", element: <CreatorDetail /> },
       { path: "cart", element: <Cart /> },
+      { path: "checkout", element: <Checkout /> },
       { path: "checkout-success", element: <CheckoutSuccess /> },
     ],
   },
