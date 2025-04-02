@@ -19,3 +19,12 @@ export interface CreateContentFileInput {
   file_size: number;
   is_preview?: boolean;
 }
+
+// Extend the File interface to include properties needed for upload tracking
+declare global {
+  interface File {
+    id?: string;
+    status?: string;
+    path?: string;
+  }
+}

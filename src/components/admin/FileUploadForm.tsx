@@ -16,7 +16,6 @@ import { createContentFile } from '@/services/contentFileService';
 import { useToast } from '@/hooks/use-toast';
 import BatchFileUploader from './BatchFileUploader';
 import { ContentFile, CreateContentFileInput } from '@/types/contentFile';
-import { supabase } from '@/integrations/supabase/client';
 
 interface FileUploadFormProps {
   creatorId: string;
@@ -31,6 +30,7 @@ interface FileUploadFormValues {
 interface FileWithUploadStatus extends File {
   id: string;
   status?: string;
+  path?: string; // Add path property to store the uploaded file path
 }
 
 export default function FileUploadForm({ creatorId, onSuccess }: FileUploadFormProps) {
@@ -53,15 +53,16 @@ export default function FileUploadForm({ creatorId, onSuccess }: FileUploadFormP
         const results: ContentFile[] = [];
         
         for (const file of files) {
-          // The file path is set in the BatchFileUploader
-          // We need to get the path from the successful uploads
-          const filePath = `creator_${creatorId}/${file.id}_${file.name}`;
-          
+          // Get the file path from the successful uploads
+          if (!file.path) {
+            throw new Error(`Missing file path for ${file.name}`);
+          }
+
           // Create content file record
           const contentFileInput: CreateContentFileInput = {
             creator_id: creatorId,
             file_name: file.name,
-            file_path: filePath,
+            file_path: file.path,
             file_type: file.type || 'application/octet-stream',
             file_size: file.size,
             is_preview: false, // Default to not a preview file

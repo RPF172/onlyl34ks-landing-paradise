@@ -1,3 +1,4 @@
+
 import { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Progress } from '@/components/ui/progress';
@@ -15,6 +16,7 @@ interface FileWithProgress extends File {
   status: 'queued' | 'uploading' | 'success' | 'error';
   error?: string;
   previewUrl?: string;
+  path?: string; // Added path property to store the uploaded file path
 }
 
 interface BatchFileUploaderProps {
@@ -139,22 +141,23 @@ export default function BatchFileUploader({
       });
       
       // Upload file using Supabase storage
-      const { error } = await supabase.storage
+      const { data, error } = await supabase.storage
         .from('content-files')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false,
-          // Use XHR for progress tracking instead of onUploadProgress
-        });
+        .upload(filePath, file);
       
       if (error) {
         throw error;
       }
       
-      // Update file with success status
+      // Update file with success status and path
       setFiles(prev => 
         prev.map(f => 
-          f.id === file.id ? { ...f, status: 'success', progress: 100 } : f
+          f.id === file.id ? { 
+            ...f, 
+            status: 'success', 
+            progress: 100,
+            path: filePath // Store the file path for database record creation
+          } : f
         )
       );
       
