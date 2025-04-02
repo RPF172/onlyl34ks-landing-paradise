@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { Separator } from "@/components/ui/separator";
 
 const formSchema = z.object({
   name: z.string().min(2, "Name is required"),
@@ -79,6 +80,20 @@ export default function CheckoutForm() {
         elements,
         confirmParams: {
           return_url: `${window.location.origin}/checkout-success`,
+          payment_method_data: {
+            billing_details: {
+              name: values.name,
+              email: values.email,
+              address: address ? {
+                line1: address.line1 || "",
+                line2: address.line2 || "",
+                city: address.city || "",
+                state: address.state || "",
+                postal_code: address.postal_code || "",
+                country: address.country || "",
+              } : undefined
+            }
+          }
         },
       });
 
@@ -172,9 +187,21 @@ export default function CheckoutForm() {
           />
         </div>
 
+        <Separator className="my-4" />
+
         <div className="space-y-4">
           <h2 className="text-xl font-semibold">Payment Details</h2>
-          <PaymentElement />
+          <p className="text-sm text-muted-foreground mb-4">
+            Please enter your card details below to complete your purchase.
+          </p>
+          <PaymentElement 
+            options={{
+              layout: {
+                type: 'tabs',
+                defaultCollapsed: false,
+              },
+            }} 
+          />
         </div>
 
         {errorMessage && (
@@ -191,7 +218,7 @@ export default function CheckoutForm() {
           {isProcessing ? (
             <div className="flex items-center">
               <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2"></div>
-              Processing...
+              Processing Payment...
             </div>
           ) : (
             "Complete Purchase"
