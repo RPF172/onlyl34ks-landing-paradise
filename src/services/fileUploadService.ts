@@ -2,156 +2,106 @@
 import { supabase } from '@/integrations/supabase/client';
 import { FileWithProgress } from '@/types/fileUpload';
 
-/**
- * Extract metadata from a file based on its type
- */
-export const extractFileMetadata = async (file: File): Promise<Record<string, any>> => {
+export const extractFileMetadata = async (file: File): Promise<{
+  file_name: string;
+  file_type: string;
+  file_size: number;
+  metadata?: Record<string, any>;
+}> => {
   const metadata: Record<string, any> = {};
   
   try {
-    // Basic metadata that applies to all files
-    metadata.size = file.size;
-    metadata.type = file.type;
-    metadata.name = file.name;
-    metadata.lastModified = file.lastModified;
+    // Basic metadata
+    const fileMetadata = {
+      file_name: file.name,
+      file_type: file.type || 'application/octet-stream',
+      file_size: file.size,
+      metadata: {}
+    };
 
-    // Extract metadata for images
+    // Image-specific metadata
     if (file.type.startsWith('image/')) {
-      const imageMetadata = await extractImageMetadata(file);
-      Object.assign(metadata, imageMetadata);
+      const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = URL.createObjectURL(file);
+      });
+
+      fileMetadata.metadata = {
+        width: img.width,
+        height: img.height,
+        aspectRatio: img.width / img.height
+      };
+
+      URL.revokeObjectURL(img.src);
     }
-    
-    // Extract metadata for videos
+
+    // Video-specific metadata
     if (file.type.startsWith('video/')) {
-      const videoMetadata = await extractVideoMetadata(file);
-      Object.assign(metadata, videoMetadata);
+      const video = await new Promise<HTMLVideoElement>((resolve, reject) => {
+        const video = document.createElement('video');
+        video.onloadedmetadata = () => resolve(video);
+        video.onerror = reject;
+        video.src = URL.createObjectURL(file);
+      });
+
+      fileMetadata.metadata = {
+        duration: video.duration,
+        videoWidth: video.videoWidth,
+        videoHeight: video.videoHeight
+      };
+
+      URL.revokeObjectURL(video.src);
     }
-    
-    // Extract metadata for audio
+
+    // Audio-specific metadata
     if (file.type.startsWith('audio/')) {
-      const audioMetadata = await extractAudioMetadata(file);
-      Object.assign(metadata, audioMetadata);
+      const audio = await new Promise<HTMLAudioElement>((resolve, reject) => {
+        const audio = document.createElement('audio');
+        audio.onloadedmetadata = () => resolve(audio);
+        audio.onerror = reject;
+        audio.src = URL.createObjectURL(file);
+      });
+
+      fileMetadata.metadata = {
+        duration: audio.duration
+      };
+
+      URL.revokeObjectURL(audio.src);
     }
-    
-    return metadata;
+
+    return fileMetadata;
   } catch (error) {
     console.error('Error extracting metadata:', error);
-    return metadata; // Return partial metadata even if extraction fails
+    return {
+      file_name: file.name,
+      file_type: file.type || 'application/octet-stream',
+      file_size: file.size
+    };
   }
 };
 
-/**
- * Extract metadata from an image file
- */
-const extractImageMetadata = async (file: File): Promise<Record<string, any>> => {
-  return new Promise((resolve) => {
-    const metadata: Record<string, any> = {};
-    const img = new Image();
-    
-    img.onload = () => {
-      metadata.width = img.width;
-      metadata.height = img.height;
-      metadata.aspectRatio = img.width / img.height;
-      
-      // Clean up object URL
-      URL.revokeObjectURL(img.src);
-      resolve(metadata);
-    };
-    
-    img.onerror = () => {
-      // Clean up object URL
-      URL.revokeObjectURL(img.src);
-      resolve(metadata);
-    };
-    
-    img.src = URL.createObjectURL(file);
-  });
-};
-
-/**
- * Extract metadata from a video file
- */
-const extractVideoMetadata = async (file: File): Promise<Record<string, any>> => {
-  return new Promise((resolve) => {
-    const metadata: Record<string, any> = {};
-    const video = document.createElement('video');
-    
-    video.onloadedmetadata = () => {
-      metadata.width = video.videoWidth;
-      metadata.height = video.videoHeight;
-      metadata.duration = video.duration;
-      metadata.aspectRatio = video.videoWidth / video.videoHeight;
-      
-      // Clean up object URL
-      URL.revokeObjectURL(video.src);
-      resolve(metadata);
-    };
-    
-    video.onerror = () => {
-      // Clean up object URL
-      URL.revokeObjectURL(video.src);
-      resolve(metadata);
-    };
-    
-    video.src = URL.createObjectURL(file);
-  });
-};
-
-/**
- * Extract metadata from an audio file
- */
-const extractAudioMetadata = async (file: File): Promise<Record<string, any>> => {
-  return new Promise((resolve) => {
-    const metadata: Record<string, any> = {};
-    const audio = document.createElement('audio');
-    
-    audio.onloadedmetadata = () => {
-      metadata.duration = audio.duration;
-      
-      // Clean up object URL
-      URL.revokeObjectURL(audio.src);
-      resolve(metadata);
-    };
-    
-    audio.onerror = () => {
-      // Clean up object URL
-      URL.revokeObjectURL(audio.src);
-      resolve(metadata);
-    };
-    
-    audio.src = URL.createObjectURL(file);
-  });
-};
-
-/**
- * Upload file to Supabase storage and track progress
- */
 export const uploadFileToSupabase = async (
   file: FileWithProgress, 
   creatorId?: string,
   onProgressUpdate?: (fileId: string, progress: number, speed: number, timeRemaining: number) => void
 ): Promise<string> => {
   try {
-    // Generate file path
     const filePath = `${creatorId ? `creator_${creatorId}` : 'uploads'}/${file.id}_${file.name}`;
     
-    // Track upload start time for speed calculation
     const uploadStartTime = Date.now();
     
-    // Immediately report start of upload (0%)
     if (onProgressUpdate) {
       onProgressUpdate(file.id, 0, 0, 0);
     }
     
-    // Upload the file with valid options
     const { data, error } = await supabase.storage
       .from('content-files')
       .upload(filePath, file, {
         upsert: true
       });
     
-    // Since we can't track progress directly with the Supabase JS client,
-    // we'll just simulate completion after successful upload
     if (onProgressUpdate) {
       onProgressUpdate(file.id, 100, 0, 0);
     }
@@ -169,9 +119,6 @@ export const uploadFileToSupabase = async (
   }
 };
 
-/**
- * Get public URL for a file in Supabase storage
- */
 export const getFileUrl = (filePath: string): string => {
   const { data } = supabase.storage
     .from('content-files')

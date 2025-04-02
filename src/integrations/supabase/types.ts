@@ -19,6 +19,7 @@ export type Database = {
           file_type: string
           id: string
           is_preview: boolean | null
+          metadata: Json | null
           updated_at: string
         }
         Insert: {
@@ -30,6 +31,7 @@ export type Database = {
           file_type: string
           id?: string
           is_preview?: boolean | null
+          metadata?: Json | null
           updated_at?: string
         }
         Update: {
@@ -41,6 +43,7 @@ export type Database = {
           file_type?: string
           id?: string
           is_preview?: boolean | null
+          metadata?: Json | null
           updated_at?: string
         }
         Relationships: [
