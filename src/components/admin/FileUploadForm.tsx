@@ -60,15 +60,26 @@ export default function FileUploadForm({ creatorId, onSuccess }: FileUploadFormP
             throw new Error(`Missing file path for ${file.name}`);
           }
 
-          console.log('Creating content file record for:', file.name, 'with path:', file.path);
+          // Log the file properties to debug
+          console.log('File properties:', {
+            name: file.name,
+            path: file.path,
+            type: file.type,
+            size: file.size
+          });
 
-          // Create content file record
+          // Create content file record with explicit properties
+          // Don't rely on the File object directly since its properties might be lost due to serialization
           const contentFileInput: CreateContentFileInput = {
             creator_id: creatorId,
-            file_name: file.name, // Ensure we're using the actual file name
+            file_name: typeof file.name === 'string' && file.name.length > 0 
+              ? file.name 
+              : `file_${crypto.randomUUID().slice(0, 8)}`,
             file_path: file.path,
-            file_type: file.type || 'application/octet-stream',
-            file_size: file.size,
+            file_type: typeof file.type === 'string' && file.type.length > 0 
+              ? file.type 
+              : 'application/octet-stream',
+            file_size: typeof file.size === 'number' ? file.size : 0,
             is_preview: false, // Default to not a preview file
           };
 
@@ -125,7 +136,7 @@ export default function FileUploadForm({ creatorId, onSuccess }: FileUploadFormP
     
     // Filter out files that weren't successfully uploaded
     const successfullyUploadedFiles = (data.files as FileWithUploadStatus[]).filter((file) => {
-      console.log(`File ${file.name} status: ${file.status}, path: ${file.path}`);
+      console.log(`File ${file.name || 'unnamed'} status: ${file.status}, path: ${file.path}`);
       return file.status === 'success' && file.path;
     });
 

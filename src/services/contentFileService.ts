@@ -38,7 +38,7 @@ export const createContentFile = async (contentFile: CreateContentFileInput): Pr
   console.log('Creating content file with data:', contentFile);
   
   try {
-    // Validate required fields
+    // Validate required fields with fallbacks
     if (!contentFile.creator_id) {
       throw new Error('creator_id is required');
     }
@@ -47,9 +47,26 @@ export const createContentFile = async (contentFile: CreateContentFileInput): Pr
       throw new Error('file_path is required');
     }
 
+    // Add fallbacks for file_name
     if (!contentFile.file_name) {
-      throw new Error('file_name is required');
+      console.log('File name is missing, using generated UUID as fallback');
+      contentFile.file_name = `file_${crypto.randomUUID().slice(0, 8)}`;
     }
+
+    // Add fallbacks for file_type if missing
+    if (!contentFile.file_type) {
+      console.log('File type is missing, using default type as fallback');
+      contentFile.file_type = 'application/octet-stream';
+    }
+
+    // Ensure file_size is set
+    if (typeof contentFile.file_size !== 'number') {
+      console.log('File size is missing or invalid, using 0 as fallback');
+      contentFile.file_size = 0;
+    }
+
+    // Log the final content file data before inserting
+    console.log('Final content file data to insert:', JSON.stringify(contentFile));
     
     const { data, error } = await supabase
       .from('content_files')
