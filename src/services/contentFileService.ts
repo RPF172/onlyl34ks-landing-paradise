@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { ContentFile, CreateContentFileInput } from '@/types/contentFile';
 
@@ -63,6 +62,12 @@ export const createContentFile = async (contentFile: CreateContentFileInput): Pr
     if (typeof contentFile.file_size !== 'number') {
       console.log('File size is missing or invalid, using 0 as fallback');
       contentFile.file_size = 0;
+    }
+
+    // Ensure metadata is an object if it exists
+    if (contentFile.metadata && typeof contentFile.metadata !== 'object') {
+      console.log('Metadata is not an object, using empty object as fallback');
+      contentFile.metadata = {};
     }
 
     // Log the final content file data before inserting

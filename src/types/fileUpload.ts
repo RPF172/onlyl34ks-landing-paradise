@@ -8,6 +8,7 @@ export interface FileWithProgress extends File {
   error?: string;
   previewUrl?: string;
   path?: string;
+  metadata?: Record<string, any>;
 }
 
 export interface BatchFileUploaderProps {

@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { Loader2, Upload } from 'lucide-react';
@@ -30,7 +29,8 @@ interface FileUploadFormValues {
 interface FileWithUploadStatus extends File {
   id: string;
   status?: string;
-  path?: string; // Add path property to store the uploaded file path
+  path?: string; 
+  metadata?: Record<string, any>;
 }
 
 export default function FileUploadForm({ creatorId, onSuccess }: FileUploadFormProps) {
@@ -65,11 +65,11 @@ export default function FileUploadForm({ creatorId, onSuccess }: FileUploadFormP
             name: file.name,
             path: file.path,
             type: file.type,
-            size: file.size
+            size: file.size,
+            metadata: file.metadata
           });
 
           // Create content file record with explicit properties
-          // Don't rely on the File object directly since its properties might be lost due to serialization
           const contentFileInput: CreateContentFileInput = {
             creator_id: creatorId,
             file_name: typeof file.name === 'string' && file.name.length > 0 
@@ -81,6 +81,7 @@ export default function FileUploadForm({ creatorId, onSuccess }: FileUploadFormP
               : 'application/octet-stream',
             file_size: typeof file.size === 'number' ? file.size : 0,
             is_preview: false, // Default to not a preview file
+            metadata: file.metadata || {}
           };
 
           try {

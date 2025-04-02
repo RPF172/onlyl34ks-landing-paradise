@@ -3,7 +3,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { useToast } from '@/hooks/use-toast';
 import { FileWithProgress, BatchFileUploaderProps } from '@/types/fileUpload';
-import { uploadFileToSupabase } from '@/services/fileUploadService';
+import { uploadFileToSupabase, extractFileMetadata } from '@/services/fileUploadService';
 import FileUploadItem from './FileUploadItem';
 import FileDropzone from './FileDropzone';
 import UploadProgressSummary from './UploadProgressSummary';
@@ -52,7 +52,7 @@ export default function BatchFileUploader({
     onChange(files as File[]);
   }, [files, onChange]);
   
-  // Handler for uploading a file to Supabase
+  // Extract metadata and handle file upload
   const handleFileUpload = async (file: FileWithProgress) => {
     // Skip if already uploaded or has error
     if (file.status === 'success' || file.status === 'error') return;
@@ -65,6 +65,17 @@ export default function BatchFileUploader({
     );
     
     try {
+      // Extract file metadata before upload
+      const metadata = await extractFileMetadata(file);
+      console.log(`Extracted metadata for ${file.name}:`, metadata);
+      
+      // Update file with extracted metadata
+      setFiles(prev => 
+        prev.map(f => 
+          f.id === file.id ? { ...f, metadata } : f
+        )
+      );
+      
       // Upload the file and get the file path
       const filePath = await uploadFileToSupabase(
         file,
@@ -118,12 +129,12 @@ export default function BatchFileUploader({
     }
   };
   
-  const onDrop = useCallback((acceptedFiles: File[]) => {
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
     // Don't process if disabled or exceeding max files
     if (disabled) return;
     
-    // Generate preview URLs for images
-    const newFiles = acceptedFiles.map(file => {
+    // Generate preview URLs and extract metadata for files
+    const newFilesPromises = acceptedFiles.map(async (file) => {
       const fileWithId: FileWithProgress = Object.assign(file, {
         id: crypto.randomUUID(),
         progress: 0,
@@ -139,6 +150,8 @@ export default function BatchFileUploader({
       
       return fileWithId;
     });
+    
+    const newFiles = await Promise.all(newFilesPromises);
     
     // Limit number of files
     const totalFiles = [...files, ...newFiles];
