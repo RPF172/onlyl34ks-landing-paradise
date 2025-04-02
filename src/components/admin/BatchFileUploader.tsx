@@ -134,7 +134,7 @@ export default function BatchFileUploader({
       });
       
       // Create preview for images
-      if (file.type.startsWith('image/')) {
+      if (file.type && file.type.startsWith('image/')) {
         fileWithId.previewUrl = URL.createObjectURL(file);
       }
       
@@ -256,7 +256,8 @@ export default function BatchFileUploader({
   };
 
   const getFileIcon = (file: FileWithProgress) => {
-    if (file.type.startsWith('image/')) {
+    // Fix: Add null/undefined check for file.type
+    if (file.type && file.type.startsWith('image/')) {
       return file.previewUrl ? 
         <img 
           src={file.previewUrl} 
@@ -265,7 +266,7 @@ export default function BatchFileUploader({
         /> : 
         <Image className="w-10 h-10 text-gray-400" />;
     }
-    if (file.type.startsWith('video/')) {
+    if (file.type && file.type.startsWith('video/')) {
       return <Film className="w-10 h-10 text-purple-400" />;
     }
     return <FileText className="w-10 h-10 text-blue-400" />;
