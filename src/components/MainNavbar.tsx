@@ -56,21 +56,21 @@ const MainNavbar = () => {
           <NavigationMenu>
             <NavigationMenuList>
               <NavigationMenuItem>
-                <Link to="/" legacyBehavior passHref>
+                <Link to="/">
                   <NavigationMenuLink className={navigationMenuTriggerStyle()}>
                     Home
                   </NavigationMenuLink>
                 </Link>
               </NavigationMenuItem>
               <NavigationMenuItem>
-                <Link to="/creators" legacyBehavior passHref>
+                <Link to="/creators">
                   <NavigationMenuLink className={navigationMenuTriggerStyle()}>
                     Creators
                   </NavigationMenuLink>
                 </Link>
               </NavigationMenuItem>
               <NavigationMenuItem>
-                <Link to="/cart" legacyBehavior passHref>
+                <Link to="/cart">
                   <NavigationMenuLink className={navigationMenuTriggerStyle()}>
                     <ShoppingCart className="mr-1 h-4 w-4" />
                     Cart
