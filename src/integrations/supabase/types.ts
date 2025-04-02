@@ -50,6 +50,38 @@ export type Database = {
           },
         ]
       }
+      creator_packages: {
+        Row: {
+          created_at: string
+          creator_id: string
+          id: string
+          price: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          id?: string
+          price?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          id?: string
+          price?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "creator_packages_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       creators: {
         Row: {
           bio: string | null
@@ -74,6 +106,36 @@ export type Database = {
           id?: string
           name?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      orders: {
+        Row: {
+          amount: number
+          created_at: string
+          creator_package_id: string
+          id: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          creator_package_id: string
+          id?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          creator_package_id?: string
+          id?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -103,6 +165,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_sales_analytics: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          total_revenue: number
+          total_orders: number
+          avg_order_value: number
+        }[]
+      }
+      get_sales_by_creator: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          creator_id: string
+          creator_name: string
+          total_sales: number
+          orders_count: number
+        }[]
+      }
       is_admin: {
         Args: {
           user_id: string
