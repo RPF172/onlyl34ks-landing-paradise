@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { fetchCreators, createCreator, updateCreator, deleteCreator } from '@/services/creatorService';
@@ -25,8 +24,9 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Pencil, Trash2, Plus, Loader2 } from 'lucide-react';
+import { Pencil, Trash2, Plus, Loader2, FileIcon } from 'lucide-react';
 import CreatorForm from '@/components/admin/CreatorForm';
+import { useNavigate } from 'react-router-dom';
 
 export default function Dashboard() {
   const { toast } = useToast();
@@ -35,6 +35,7 @@ export default function Dashboard() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedCreator, setSelectedCreator] = useState<Creator | null>(null);
+  const navigate = useNavigate();
 
   // Fetch creators
   const { data: creators = [], isLoading, isError } = useQuery({
@@ -179,6 +180,16 @@ export default function Dashboard() {
                     {new Date(creator.created_at).toLocaleDateString()}
                   </TableCell>
                   <TableCell className="text-right space-x-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="text-onlyl34ks-accent"
+                      onClick={() => navigate(`/admin/creators/${creator.id}`)}
+                    >
+                      <FileIcon className="h-4 w-4 mr-1" />
+                      Files
+                    </Button>
+
                     <Dialog open={isEditDialogOpen && selectedCreator?.id === creator.id} onOpenChange={(open) => {
                       setIsEditDialogOpen(open);
                       if (!open) setSelectedCreator(null);

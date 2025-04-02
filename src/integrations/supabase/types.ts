@@ -9,6 +9,47 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      content_files: {
+        Row: {
+          created_at: string
+          creator_id: string
+          file_name: string
+          file_path: string
+          file_size: number
+          file_type: string
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          creator_id: string
+          file_name: string
+          file_path: string
+          file_size: number
+          file_type: string
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          creator_id?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number
+          file_type?: string
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "content_files_creator_id_fkey"
+            columns: ["creator_id"]
+            isOneToOne: false
+            referencedRelation: "creators"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       creators: {
         Row: {
           bio: string | null
