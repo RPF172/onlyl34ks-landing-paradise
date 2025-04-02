@@ -3,9 +3,10 @@ import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { fetchCreator } from '@/services/creatorService';
+import { fetchContentFiles } from '@/services/contentFileService';
 import AdminLayout from "@/layouts/AdminLayout";
 import FileUploadForm from '@/components/admin/FileUploadForm';
-import ContentFilesList from '@/components/admin/ContentFilesList';
+import ContentFileTable from '@/components/admin/ContentFileTable';
 import { Button } from '@/components/ui/button';
 import { ChevronLeft, Loader2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -15,15 +16,28 @@ export default function CreatorDetailPage() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState<string>("files");
   
-  const { data: creator, isLoading, isError } = useQuery({
+  const { data: creator, isLoading: creatorLoading, isError: creatorError } = useQuery({
     queryKey: ['creator', id],
     queryFn: () => fetchCreator(id as string),
+    enabled: !!id
+  });
+
+  const { 
+    data: contentFiles, 
+    isLoading: filesLoading, 
+    isError: filesError 
+  } = useQuery({
+    queryKey: ['contentFiles', id],
+    queryFn: () => fetchContentFiles(id as string),
     enabled: !!id
   });
 
   const handleBackClick = () => {
     navigate('/admin');
   };
+
+  const isLoading = creatorLoading || filesLoading;
+  const isError = creatorError || filesError;
 
   if (isLoading) {
     return (
@@ -97,7 +111,7 @@ export default function CreatorDetailPage() {
                 </TabsList>
                 
                 <TabsContent value="files" className="mt-0">
-                  <ContentFilesList creatorId={creator.id} />
+                  {contentFiles && <ContentFileTable files={contentFiles} creatorId={creator.id} />}
                 </TabsContent>
                 
                 <TabsContent value="upload" className="mt-0">
