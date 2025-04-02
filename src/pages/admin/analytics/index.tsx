@@ -17,12 +17,14 @@ export default function AdminAnalyticsPage() {
   } = useQuery({
     queryKey: ['salesAnalytics'],
     queryFn: fetchSalesAnalytics,
-    onError: (error) => {
-      toast({
-        title: "Error loading sales data",
-        description: error instanceof Error ? error.message : "Unknown error occurred",
-        variant: "destructive"
-      });
+    meta: {
+      onError: (error: Error) => {
+        toast({
+          title: "Error loading sales data",
+          description: error.message || "Unknown error occurred",
+          variant: "destructive"
+        });
+      }
     }
   });
   
@@ -33,12 +35,14 @@ export default function AdminAnalyticsPage() {
   } = useQuery({
     queryKey: ['salesByCreator'],
     queryFn: fetchSalesByCreator,
-    onError: (error) => {
-      toast({
-        title: "Error loading creator sales data",
-        description: error instanceof Error ? error.message : "Unknown error occurred",
-        variant: "destructive"
-      });
+    meta: {
+      onError: (error: Error) => {
+        toast({
+          title: "Error loading creator sales data",
+          description: error.message || "Unknown error occurred",
+          variant: "destructive"
+        });
+      }
     }
   });
 
