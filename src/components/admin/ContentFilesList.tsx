@@ -1,4 +1,3 @@
-
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { fetchContentFilesByCreator, deleteContentFile, getFileUrl } from '@/services/contentFileService';
 import { ContentFile } from '@/types/contentFile';
@@ -31,7 +30,7 @@ export default function ContentFilesList({ creatorId }: ContentFilesListProps) {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (file: ContentFile) => deleteContentFile(file.id, file.file_path),
+    mutationFn: (file: ContentFile) => deleteContentFile(file.id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['contentFiles', creatorId] });
       setFileToDelete(null);
@@ -77,13 +76,6 @@ export default function ContentFilesList({ creatorId }: ContentFilesListProps) {
     if (bytes < 1024) return bytes + ' bytes';
     if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
     return (bytes / 1048576).toFixed(1) + ' MB';
-  };
-
-  const getFileIconByType = (fileType: string) => {
-    if (fileType.startsWith('image/')) {
-      return <FileIcon className="h-5 w-5" />;
-    }
-    return <FileIcon className="h-5 w-5" />;
   };
 
   return (

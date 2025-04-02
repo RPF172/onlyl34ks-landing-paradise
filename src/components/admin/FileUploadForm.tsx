@@ -13,7 +13,7 @@ import {
   FormLabel,
   FormMessage,
 } from '@/components/ui/form';
-import { uploadFile, createContentFileRecord } from '@/services/contentFileService';
+import { uploadFile, createContentFile } from '@/services/contentFileService';
 import { useToast } from '@/hooks/use-toast';
 
 interface FileUploadFormProps {
@@ -41,7 +41,7 @@ export default function FileUploadForm({ creatorId, onSuccess }: FileUploadFormP
         const filePath = await uploadFile(file, creatorId);
         
         // Step 2: Create content file record in the database
-        return await createContentFileRecord({
+        return await createContentFile({
           creator_id: creatorId,
           file_name: file.name,
           file_path: filePath,
