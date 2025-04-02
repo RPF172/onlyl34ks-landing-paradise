@@ -65,7 +65,7 @@ export default function FileUploadForm({ creatorId, onSuccess }: FileUploadFormP
           // Create content file record
           const contentFileInput: CreateContentFileInput = {
             creator_id: creatorId,
-            file_name: file.name,
+            file_name: file.name, // Ensure we're using the actual file name
             file_path: file.path,
             file_type: file.type || 'application/octet-stream',
             file_size: file.size,

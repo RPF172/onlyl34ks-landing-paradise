@@ -46,6 +46,10 @@ export const createContentFile = async (contentFile: CreateContentFileInput): Pr
     if (!contentFile.file_path) {
       throw new Error('file_path is required');
     }
+
+    if (!contentFile.file_name) {
+      throw new Error('file_name is required');
+    }
     
     const { data, error } = await supabase
       .from('content_files')
