@@ -15,6 +15,7 @@ import { useForm } from 'react-hook-form';
 import { uploadFile, createContentFile } from '@/services/contentFileService';
 import { useToast } from '@/hooks/use-toast';
 import BatchFileUploader from './BatchFileUploader';
+import { ContentFile, CreateContentFileInput } from '@/types/contentFile';
 
 interface FileUploadFormProps {
   creatorId: string;
@@ -46,27 +47,32 @@ export default function FileUploadForm({ creatorId, onSuccess }: FileUploadFormP
           const filePath = await uploadFile(file, creatorId);
           
           // Step 2: Create content file record in the database
-          return await createContentFile({
+          const contentFileInput: CreateContentFileInput = {
             creator_id: creatorId,
             file_name: file.name,
             file_path: filePath,
             file_type: file.type,
             file_size: file.size,
             is_preview: false, // Default to not a preview file
-          });
+          };
+
+          return await createContentFile(contentFileInput);
         });
         
         return await Promise.all(promises);
+      } catch (error) {
+        console.error('Upload error:', error);
+        throw error;
       } finally {
         setIsUploading(false);
       }
     },
-    onSuccess: () => {
+    onSuccess: (uploadedFiles: ContentFile[]) => {
       form.reset();
       onSuccess();
       toast({
         title: "Success",
-        description: "All files uploaded successfully",
+        description: `${uploadedFiles.length} file(s) uploaded successfully`,
       });
     },
     onError: (error: Error) => {

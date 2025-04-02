@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { ContentFile, CreateContentFileInput } from '@/types/contentFile';
 
@@ -17,7 +16,6 @@ export const fetchContentFiles = async (creatorId: string): Promise<ContentFile[
   return data as ContentFile[];
 };
 
-// Alias for fetchContentFiles to match the import in ContentFilesList
 export const fetchContentFilesByCreator = fetchContentFiles;
 
 export const fetchContentFile = async (id: string): Promise<ContentFile> => {
@@ -50,7 +48,6 @@ export const createContentFile = async (contentFile: CreateContentFileInput): Pr
   return data as ContentFile;
 };
 
-// Alias for createContentFile to match the import in FileUploadForm
 export const createContentFileRecord = createContentFile;
 
 export const updateContentFile = async (contentFile: ContentFile): Promise<ContentFile> => {
@@ -83,11 +80,10 @@ export const deleteContentFile = async (id: string): Promise<void> => {
   }
 };
 
-// Upload file function needed for FileUploadForm
 export const uploadFile = async (file: File, creatorId: string): Promise<string> => {
-  const filePath = `creator_${creatorId}/${file.name}`;
+  const filePath = `creator_${creatorId}/${crypto.randomUUID()}_${file.name}`;
   
-  const { error } = await supabase.storage
+  const { data, error } = await supabase.storage
     .from('content-files')
     .upload(filePath, file);
 
@@ -99,7 +95,6 @@ export const uploadFile = async (file: File, creatorId: string): Promise<string>
   return filePath;
 };
 
-// Get file URL function needed for ContentFilesList
 export const getFileUrl = (filePath: string): string => {
   const { data } = supabase.storage
     .from('content-files')
