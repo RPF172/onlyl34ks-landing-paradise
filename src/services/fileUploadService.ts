@@ -16,24 +16,21 @@ export const uploadFileToSupabase = async (
     
     // Track upload start time for speed calculation
     const uploadStartTime = Date.now();
-    let lastLoaded = 0;
-    let lastTime = uploadStartTime;
     
-    // Create AbortController for upload tracking
-    const abortController = new AbortController();
+    // Immediately report start of upload (0%)
+    if (onProgressUpdate) {
+      onProgressUpdate(file.id, 0, 0, 0);
+    }
     
-    // Set up progress tracking manually since onUploadProgress is not in FileOptions type
-    // We'll use the fetch API's progress reporting capabilities
+    // Upload the file with valid options
     const { data, error } = await supabase.storage
       .from('content-files')
       .upload(filePath, file, {
-        upsert: true, 
-        // Pass only the valid options that exist in FileOptions type
-        signal: abortController.signal
+        upsert: true
       });
-
-    // Manual progress tracking would be done here in a real implementation
-    // For now, we'll simulate 100% completion
+    
+    // Since we can't track progress directly with the Supabase JS client,
+    // we'll just simulate completion after successful upload
     if (onProgressUpdate) {
       onProgressUpdate(file.id, 100, 0, 0);
     }
