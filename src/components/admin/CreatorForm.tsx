@@ -35,11 +35,13 @@ export default function CreatorForm({ creator, onSubmit, isLoading, onCancel }: 
 
   const handleSubmit = (data: CreatorFormValues) => {
     if (creator) {
+      // If updating an existing creator, include the id
       onSubmit({
-        ...data,
         id: creator.id,
+        ...data,
       });
     } else {
+      // Creating a new creator
       onSubmit(data);
     }
   };
