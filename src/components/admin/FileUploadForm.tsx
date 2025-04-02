@@ -27,6 +27,12 @@ interface FileUploadFormValues {
   files: File[];
 }
 
+// Extend the File interface to include properties we need
+interface FileWithUploadStatus extends File {
+  id: string;
+  status?: string;
+}
+
 export default function FileUploadForm({ creatorId, onSuccess }: FileUploadFormProps) {
   const { toast } = useToast();
   const [isUploading, setIsUploading] = useState(false);
@@ -38,7 +44,7 @@ export default function FileUploadForm({ creatorId, onSuccess }: FileUploadFormP
   });
 
   const mutation = useMutation({
-    mutationFn: async (files: File[]) => {
+    mutationFn: async (files: FileWithUploadStatus[]) => {
       setIsUploading(true);
       
       try {
@@ -101,7 +107,7 @@ export default function FileUploadForm({ creatorId, onSuccess }: FileUploadFormP
     }
 
     // Filter out files that weren't successfully uploaded
-    const successfullyUploadedFiles = data.files.filter((file: any) => 
+    const successfullyUploadedFiles = (data.files as FileWithUploadStatus[]).filter((file) => 
       file.status === 'success'
     );
 

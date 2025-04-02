@@ -1,4 +1,3 @@
-
 import { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import { Progress } from '@/components/ui/progress';
@@ -85,35 +84,67 @@ export default function BatchFileUploader({
     
     try {
       // Generate file path - use creatorId if available or fallback to a generic path
-      const filePath = `${creatorId ? `creator_${creatorId}` : 'uploads'}/${crypto.randomUUID()}_${file.name}`;
+      const filePath = `${creatorId ? `creator_${creatorId}` : 'uploads'}/${file.id}_${file.name}`;
       
       // Track upload start time for speed calculation
       const uploadStartTime = Date.now();
+      let lastLoaded = 0;
+      let lastTime = uploadStartTime;
       
-      // Upload to Supabase storage with progress tracking
-      const { error } = await supabase.storage
-        .from('content-files')
-        .upload(filePath, file, {
-          cacheControl: '3600',
-          upsert: false,
-          onUploadProgress: (progress) => {
+      // Create an XMLHttpRequest to track progress
+      const xhr = new XMLHttpRequest();
+      const uploadPromise = new Promise<void>((resolve, reject) => {
+        xhr.upload.addEventListener('progress', (event) => {
+          if (event.lengthComputable) {
             const now = Date.now();
-            const elapsed = (now - uploadStartTime) / 1000; // seconds
-            const uploadedSize = Math.floor(file.size * (progress.percent / 100));
-            const speed = elapsed > 0 ? uploadedSize / elapsed : 0; // bytes per second
-            const timeRemaining = speed > 0 ? (file.size - uploadedSize) / speed : 0;
+            const percent = (event.loaded / event.total) * 100;
+            const loadDiff = event.loaded - lastLoaded;
+            const timeDiff = (now - lastTime) / 1000; // seconds
             
+            // Calculate speed (bytes per second)
+            const speed = timeDiff > 0 ? loadDiff / timeDiff : 0;
+            
+            // Calculate time remaining
+            const remainingBytes = event.total - event.loaded;
+            const timeRemaining = speed > 0 ? remainingBytes / speed : 0;
+            
+            // Update file with progress info
             setFiles(prevFiles => 
               prevFiles.map(f => 
                 f.id === file.id ? {
                   ...f,
-                  progress: Math.round(progress.percent),
+                  progress: Math.round(percent),
                   speed: speed,
                   timeRemaining: timeRemaining,
                 } : f
               )
             );
+            
+            // Update for next calculation
+            lastLoaded = event.loaded;
+            lastTime = now;
           }
+        });
+        
+        xhr.addEventListener('load', () => {
+          if (xhr.status >= 200 && xhr.status < 300) {
+            resolve();
+          } else {
+            reject(new Error(`HTTP Error: ${xhr.status}`));
+          }
+        });
+        
+        xhr.addEventListener('error', () => reject(new Error('Network Error')));
+        xhr.addEventListener('abort', () => reject(new Error('Upload Aborted')));
+      });
+      
+      // Upload file using Supabase storage
+      const { error } = await supabase.storage
+        .from('content-files')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false,
+          // Use XHR for progress tracking instead of onUploadProgress
         });
       
       if (error) {
@@ -270,7 +301,7 @@ export default function BatchFileUploader({
   };
 
   const getFileIcon = (file: FileWithProgress) => {
-    // Fix: Add null/undefined check for file.type
+    // Add null/undefined check for file.type
     if (file.type && file.type.startsWith('image/')) {
       return file.previewUrl ? 
         <img 
