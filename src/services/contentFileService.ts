@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { ContentFile, CreateContentFileInput } from '@/types/contentFile';
 
@@ -34,6 +35,8 @@ export const fetchContentFile = async (id: string): Promise<ContentFile> => {
 };
 
 export const createContentFile = async (contentFile: CreateContentFileInput): Promise<ContentFile> => {
+  console.log('Creating content file with data:', contentFile);
+  
   const { data, error } = await supabase
     .from('content_files')
     .insert([contentFile])
@@ -45,6 +48,7 @@ export const createContentFile = async (contentFile: CreateContentFileInput): Pr
     throw new Error(error.message);
   }
 
+  console.log('Content file created successfully:', data);
   return data as ContentFile;
 };
 

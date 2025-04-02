@@ -48,6 +48,7 @@ export default function FileUploadForm({ creatorId, onSuccess }: FileUploadFormP
       setIsUploading(true);
       
       try {
+        console.log('Creating content file records for:', files.length, 'files');
         // Files are already uploaded by the BatchFileUploader
         // We just need to create the database records for each file
         const results: ContentFile[] = [];
@@ -55,8 +56,11 @@ export default function FileUploadForm({ creatorId, onSuccess }: FileUploadFormP
         for (const file of files) {
           // Get the file path from the successful uploads
           if (!file.path) {
+            console.error('Missing file path for:', file.name);
             throw new Error(`Missing file path for ${file.name}`);
           }
+
+          console.log('Creating content file record for:', file.name, 'with path:', file.path);
 
           // Create content file record
           const contentFileInput: CreateContentFileInput = {
@@ -68,10 +72,17 @@ export default function FileUploadForm({ creatorId, onSuccess }: FileUploadFormP
             is_preview: false, // Default to not a preview file
           };
 
-          const contentFile = await createContentFile(contentFileInput);
-          results.push(contentFile);
+          try {
+            const contentFile = await createContentFile(contentFileInput);
+            console.log('Content file record created:', contentFile);
+            results.push(contentFile);
+          } catch (error) {
+            console.error('Error creating content file record:', error);
+            throw error;
+          }
         }
         
+        console.log('Successfully created', results.length, 'content file records');
         return results;
       } catch (error) {
         console.error('Upload error:', error);
@@ -81,6 +92,7 @@ export default function FileUploadForm({ creatorId, onSuccess }: FileUploadFormP
       }
     },
     onSuccess: (uploadedFiles: ContentFile[]) => {
+      console.log('Mutation successful, uploaded files:', uploadedFiles.length);
       form.reset();
       onSuccess();
       toast({
@@ -89,6 +101,7 @@ export default function FileUploadForm({ creatorId, onSuccess }: FileUploadFormP
       });
     },
     onError: (error: Error) => {
+      console.error('Mutation error:', error);
       toast({
         title: "Error",
         description: `Failed to create file records: ${error.message}`,
@@ -107,11 +120,15 @@ export default function FileUploadForm({ creatorId, onSuccess }: FileUploadFormP
       return;
     }
 
+    console.log('Form submitted with files:', data.files.length);
+    
     // Filter out files that weren't successfully uploaded
     const successfullyUploadedFiles = (data.files as FileWithUploadStatus[]).filter((file) => 
       file.status === 'success'
     );
 
+    console.log('Successfully uploaded files:', successfullyUploadedFiles.length);
+    
     if (successfullyUploadedFiles.length === 0) {
       toast({
         title: "Error",
